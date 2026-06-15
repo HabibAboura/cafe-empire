@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Café Empire</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  body {
+    background: linear-gradient(135deg, #2b1810 0%, #4a2c1a 50%, #2b1810 100%);
+    color: #f5e6d3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    transition: background 1.5s ease;
+  }
+
+  body.stage-1 { background: linear-gradient(135deg, #2b1810 0%, #4a2c1a 50%, #2b1810 100%); }
+  body.stage-2 { background: linear-gradient(135deg, #1a2b1f 0%, #2c4a35 50%, #1a2b1f 100%); }
+  body.stage-3 { background: linear-gradient(135deg, #1a1f2b 0%, #2c354a 50%, #1a1f2b 100%); }
+  body.stage-4 { background: linear-gradient(135deg, #2b1a2b 0%, #4a2c4a 50%, #2b1a2b 100%); }
+
+  .container {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .stage-label {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 4px;
+  }
+
+  .stats {
+    text-align: center;
+    margin: 16px 0;
+    padding: 16px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .money {
+    font-size: 36px;
+    font-weight: 700;
+    color: #ffd700;
+    text-shadow: 0 0 12px rgba(255,215,0,0.3);
+  }
+
+  .rate {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 4px;
+  }
+
+  .click-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 24px 0;
+  }
+
+  .click-btn {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 4px solid #ffd700;
+    background: radial-gradient(circle, #6f4e37 0%, #4a2c1a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+    cursor: pointer;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    box-shadow: 0 4px 20px rgba(255,215,0,0.2);
+    position: relative;
+  }
+
+  .click-btn:active {
+    transform: scale(0.93);
+  }
+
+  .click-value {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 10px;
+  }
+
+  .float-text {
+    position: absolute;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffd700;
+    pointer-events: none;
+    animation: floatUp 0.9s ease-out forwards;
+    white-space: nowrap;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -60px); }
+  }
+
+  .boost-banner {
+    display: none;
+    width: 100%;
+    text-align: center;
+    background: linear-gradient(90deg, #ff6b35, #ffd700);
+    color: #2b1810;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    animation: pulse 1s infinite;
+  }
+
+  .boost-banner.active {
+    display: block;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+
+  .buy-controls {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .buy-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #f5e6d3;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .buy-btn.active {
+    background: #ffd700;
+    color: #2b1810;
+    border-color: #ffd700;
+  }
+
+  .upgrades {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .upgrade {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+  }
+
+  .upgrade:hover {
+    background: rgba(255,255,255,0.09);
+  }
+
+  .upgrade.disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  .upgrade.disabled:hover {
+    background: rgba(255,255,255,0.05);
+  }
+
+  .upgrade-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .upgrade-icon {
+    font-size: 28px;
+    width: 36px;
+    text-align: center;
+  }
+
+  .upgrade-name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .upgrade-sub {
+    font-size: 11px;
+    opacity: 0.65;
+    margin-top: 2px;
+  }
+
+  .upgrade-right {
+    text-align: right;
+  }
+
+  .upgrade-cost {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffd700;
+  }
+
+  .upgrade-count {
+    font-size: 11px;
+    opacity: 0.65;
+    margin-top: 2px;
+  }
+
+  .achievements {
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    margin-bottom: 8px;
+  }
+
+  .ach-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 6px;
+  }
+
+  .ach {
+    aspect-ratio: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    opacity: 0.25;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    position: relative;
+  }
+
+  .ach.unlocked {
+    opacity: 1;
+    background: rgba(255,215,0,0.12);
+    border-color: rgba(255,215,0,0.4);
+  }
+
+  .ach-tooltip {
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1208;
+    color: #f5e6d3;
+    font-size: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 10;
+  }
+
+  .ach:hover .ach-tooltip {
+    opacity: 1;
+  }
+
+  .prestige-section {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .prestige-btn {
+    background: linear-gradient(90deg, #8e44ad, #c084fc);
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(192,132,252,0.3);
+  }
+
+  .prestige-btn:disabled {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.4);
+    cursor: default;
+    box-shadow: none;
+  }
+
+  .prestige-info {
+    font-size: 11px;
+    opacity: 0.65;
+    margin-top: 8px;
+  }
+
+  .reset-link {
+    display: block;
+    text-align: center;
+    font-size: 11px;
+    opacity: 0.4;
+    margin-top: 8px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: inherit;
+  }
+
+  .toast {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: #1a1208;
+    color: #ffd700;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+    border: 1px solid rgba(255,215,0,0.3);
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body class="stage-1">
+
+<div class="toast" id="toast"></div>
+
+<div class="container">
+  <header>
+    <h1>☕ Café Empire</h1>
+    <div class="stage-label" id="stageLabel">Stand de café ambulant</div>
+  </header>
+
+  <div class="boost-banner" id="boostBanner">⚡ BOOST x2 actif ! Profite-en !</div>
+
+  <div class="stats">
+    <div class="money" id="money">$0</div>
+    <div class="rate" id="rate">+$0 / sec</div>
+  </div>
+
+  <div class="click-area">
+    <div class="click-btn" id="clickBtn">☕</div>
+    <div class="click-value">Clic = $<span id="clickValue">1</span></div>
+  </div>
+
+  <div class="buy-controls">
+    <button class="buy-btn" data-amount="1">x1</button>
+    <button class="buy-btn" data-amount="10">x10</button>
+    <button class="buy-btn" data-amount="100">x100</button>
+    <button class="buy-btn" data-amount="max">MAX</button>
+  </div>
+
+  <div class="upgrades" id="upgrades"></div>
+
+  <div class="achievements">
+    <div class="section-title">Succès</div>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+
+  <div class="prestige-section">
+    <button class="prestige-btn" id="prestigeBtn">Vendre l'empire</button>
+    <div class="prestige-info" id="prestigeInfo"></div>
+  </div>
+
+  <button class="reset-link" id="resetBtn">Tout réinitialiser</button>
+</div>
+
+<script>
+(function() {
+
+  // ---------- CONFIG ----------
+
+  const upgradesConfig = [
+    { id: 'server',  name: 'Serveur',           icon: '🧑‍🍳', baseCost: 15,      baseValue: 1,    type: 'perSecond', stage: 1 },
+    { id: 'machine', name: 'Machine à café',    icon: '⚙️',   baseCost: 50,      baseValue: 1,    type: 'perClick',  stage: 1 },
+    { id: 'kiosk',   name: 'Kiosque à café',    icon: '🏪',   baseCost: 100,     baseValue: 8,    type: 'perSecond', stage: 1 },
+    { id: 'cafe',    name: 'Café local',        icon: '🏠',   baseCost: 1000,    baseValue: 50,   type: 'perSecond', stage: 1 },
+    { id: 'roaster', name: 'Torréfacteur pro',  icon: '🔥',   baseCost: 5000,    baseValue: 8,    type: 'perClick',  stage: 1 },
+    { id: 'chain',   name: 'Chaîne régionale',  icon: '🏬',   baseCost: 20000,   baseValue: 250,  type: 'perSecond', stage: 2 },
+    { id: 'factory', name: 'Usine de torréf.',  icon: '🏭',   baseCost: 100000,  baseValue: 1200, type: 'perSecond', stage: 2 },
+    { id: 'brand',   name: 'Marque nationale',  icon: '📦',   baseCost: 500000,  baseValue: 50,   type: 'perClick',  stage: 2 },
+    { id: 'mall',    name: 'Réseau de centres commerciaux', icon: '🏢', baseCost: 2000000, baseValue: 6000, type: 'perSecond', stage: 3 },
+    { id: 'global',  name: 'Distribution mondiale', icon: '🌍', baseCost: 10000000, baseValue: 30000, type: 'perSecond', stage: 3 },
+    { id: 'empire',  name: 'Empire du café',    icon: '👑',   baseCost: 50000000, baseValue: 150000, type: 'perSecond', stage: 4 },
+  ];
+
+  const achievementsConfig = [
+    { id: 'a1',  icon: '💰', name: 'Premier dollar', desc: 'Atteindre $1', check: s => s.totalEarned >= 1 },
+    { id: 'a2',  icon: '💵', name: 'Petit pécule', desc: 'Atteindre $1,000', check: s => s.totalEarned >= 1000 },
+    { id: 'a3',  icon: '💎', name: 'Six chiffres', desc: 'Atteindre $100,000', check: s => s.totalEarned >= 100000 },
+    { id: 'a4',  icon: '🏆', name: 'Millionnaire', desc: 'Atteindre $1,000,000', check: s => s.totalEarned >= 1000000 },
+    { id: 'a5',  icon: '🌟', name: 'Magnat', desc: 'Atteindre $100,000,000', check: s => s.totalEarned >= 100000000 },
+    { id: 'a6',  icon: '🧑‍🍳', name: 'Petite équipe', desc: 'Posséder 10 Serveurs', check: s => s.owned.server >= 10 },
+    { id: 'a7',  icon: '🏪', name: 'Réseau local', desc: 'Posséder 10 Kiosques', check: s => s.owned.kiosk >= 10 },
+    { id: 'a8',  icon: '🏭', name: 'Production de masse', desc: 'Posséder 1 Usine de torréf.', check: s => s.owned.factory >= 1 },
+    { id: 'a9',  icon: '👑', name: 'Empereur', desc: 'Posséder 1 Empire du café', check: s => s.owned.empire >= 1 },
+    { id: 'a10', icon: '👆', name: 'Doigt en or', desc: 'Cliquer 500 fois', check: s => s.totalClicks >= 500 },
+    { id: 'a11', icon: '⚡', name: 'Chasseur de boost', desc: 'Activer 5 boosts', check: s => s.boostsUsed >= 5 },
+    { id: 'a12', icon: '🔄', name: 'Nouveau départ', desc: 'Faire un premier Prestige', check: s => s.prestigeCount >= 1 },
+  ];
+
+  const COST_GROWTH = 1.15;
+  const BOOST_MULTIPLIER = 2;
+  const BOOST_DURATION = 30; // seconds
+  const BOOST_MIN_INTERVAL = 45; // seconds
+  const BOOST_MAX_INTERVAL = 90; // seconds
+
+  // ---------- STATE ----------
+
+  let state = null;
+
+  function defaultState() {
+    const owned = {};
+    upgradesConfig.forEach(u => owned[u.id] = 0);
+    return {
+      money: 0,
+      totalEarned: 0,
+      totalClicks: 0,
+      owned: owned,
+      boostActive: false,
+      boostEndsAt: 0,
+      boostsUsed: 0,
+      prestigeCount: 0,
+      prestigeMultiplier: 1,
+      unlockedAchievements: [],
+      maxStageReached: 1,
+    };
+  }
+
+  // ---------- DOM ----------
+
+  const moneyEl = document.getElementById('money');
+  const rateEl = document.getElementById('rate');
+  const clickValueEl = document.getElementById('clickValue');
+  const clickBtn = document.getElementById('clickBtn');
+  const upgradesEl = document.getElementById('upgrades');
+  const achGridEl = document.getElementById('achGrid');
+  const buyBtns = document.querySelectorAll('.buy-btn');
+  const boostBanner = document.getElementById('boostBanner');
+  const prestigeBtn = document.getElementById('prestigeBtn');
+  const prestigeInfo = document.getElementById('prestigeInfo');
+  const resetBtn = document.getElementById('resetBtn');
+  const stageLabel = document.getElementById('stageLabel');
+  const toast = document.getElementById('toast');
+  const bodyEl = document.body;
+
+  let buyAmount = 1; // 1, 10, 100, or 'max'
+
+  // ---------- FORMATTING ----------
+
+  function formatNumber(n) {
+    n = Math.floor(n);
+    if (n < 1000) return n.toString();
+    const units = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc'];
+    let unitIndex = 0;
+    let value = n;
+    while (value >= 1000 && unitIndex < units.length - 1) {
+      value /= 1000;
+      unitIndex++;
+    }
+    return value.toFixed(value < 10 ? 2 : value < 100 ? 1 : 0) + units[unitIndex];
+  }
+
+  function formatMoney(n) {
+    return '$' + formatNumber(n);
+  }
+
+  // ---------- CALCULATIONS ----------
+
+  function getCurrentBoostMultiplier() {
+    return (state.boostActive && Date.now() < state.boostEndsAt) ? BOOST_MULTIPLIER : 1;
+  }
+
+  function getCostForNext(id, ownedCount) {
+    const cfg = upgradesConfig.find(u => u.id === id);
+    return Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, ownedCount));
+  }
+
+  function getCostForAmount(id, amount) {
+    const cfg = upgradesConfig.find(u => u.id === id);
+    const owned = state.owned[id];
+    if (amount === 'max') {
+      // compute how many can be bought and total cost
+      let count = 0;
+      let total = 0;
+      let money = state.money;
+      while (true) {
+        const cost = Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, owned + count));
+        if (total + cost > money) break;
+        total += cost;
+        count++;
+        if (count > 100000) break; // safety
+      }
+      return { totalCost: total, count: count };
+    } else {
+      let total = 0;
+      for (let i = 0; i < amount; i++) {
+        total += Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, owned + i));
+      }
+      return { totalCost: total, count: amount };
+    }
+  }
+
+  function recalcDerivedStats() {
+    let perSecond = 0;
+    let clickBonus = 0;
+    upgradesConfig.forEach(cfg => {
+      const owned = state.owned[cfg.id];
+      if (owned > 0) {
+        if (cfg.type === 'perSecond') {
+          perSecond += cfg.baseValue * owned;
+        } else {
+          clickBonus += cfg.baseValue * owned;
+        }
+      }
+    });
+    const prestigeMult = state.prestigeMultiplier;
+    const boostMult = getCurrentBoostMultiplier();
+    state._perSecond = perSecond * prestigeMult * boostMult;
+    state._clickValue = (1 + clickBonus) * prestigeMult * boostMult;
+  }
+
+  function getUpgradeContribution(cfg) {
+    const owned = state.owned[cfg.id];
+    if (owned === 0) return null;
+    const prestigeMult = state.prestigeMultiplier;
+    const boostMult = getCurrentBoostMultiplier();
+    const raw = cfg.baseValue * owned;
+    const effective = raw * prestigeMult * boostMult;
+    if (cfg.type === 'perSecond') {
+      return { label: '/sec', value: effective };
+    } else {
+      return { label: '/clic', value: effective };
+    }
+  }
+
+  // ---------- RENDER ----------
+
+  function getCurrentStage() {
+    // highest stage among owned upgrades with at least 1, plus base 1
+    let maxStage = 1;
+    upgradesConfig.forEach(cfg => {
+      if (state.owned[cfg.id] > 0 && cfg.stage > maxStage) {
+        maxStage = cfg.stage;
+      }
+    });
+    return maxStage;
+  }
+
+  const stageLabels = {
+    1: 'Stand de café ambulant',
+    2: 'Chaîne régionale en expansion',
+    3: 'Marque nationale reconnue',
+    4: 'Empire mondial du café ☕👑',
+  };
+
+  function updateStageVisuals() {
+    const stage = getCurrentStage();
+    if (stage !== state.maxStageReached || stage === 1) {
+      // update class
+    }
+    bodyEl.className = 'stage-' + stage;
+    stageLabel.textContent = stageLabels[stage];
+    if (stage > state.maxStageReached) {
+      state.maxStageReached = stage;
+      showToast('🎉 Nouveau palier : ' + stageLabels[stage]);
+    }
+  }
+
+  function render() {
+    recalcDerivedStats();
+
+    moneyEl.textContent = formatMoney(state.money);
+    rateEl.textContent = '+' + formatMoney(state._perSecond) + ' / sec';
+    clickValueEl.textContent = formatNumber(state._clickValue);
+
+    renderUpgrades();
+    renderAchievements();
+    renderPrestige();
+    updateStageVisuals();
+
+    if (state.boostActive && Date.now() < state.boostEndsAt) {
+      boostBanner.classList.add('active');
+    } else {
+      boostBanner.classList.remove('active');
+      if (state.boostActive) state.boostActive = false;
+    }
+  }
+
+  function renderUpgrades() {
+    upgradesEl.innerHTML = '';
+    upgradesConfig.forEach(cfg => {
+      const owned = state.owned[cfg.id];
+      const purchase = getCostForAmount(cfg.id, buyAmount);
+      const canAfford = purchase.count > 0 && state.money >= purchase.totalCost;
+
+      const div = document.createElement('div');
+      div.className = 'upgrade' + (canAfford ? '' : ' disabled');
+
+      const contribution = getUpgradeContribution(cfg);
+      let subText = cfg.type === 'perSecond'
+        ? '+' + formatMoney(cfg.baseValue) + ' / sec chacun'
+        : '+' + formatMoney(cfg.baseValue) + ' / clic chacun';
+
+      if (contribution) {
+        subText += ' • génère ' + formatMoney(contribution.value) + ' ' + contribution.label;
+      }
+
+      let amountLabel;
+      if (buyAmount === 'max') {
+        amountLabel = purchase.count > 0 ? ('MAX (x' + purchase.count + ')') : 'MAX';
+      } else {
+        amountLabel = 'x' + buyAmount;
+      }
+
+      div.innerHTML = `
+        <div class="upgrade-left">
+          <div class="upgrade-icon">${cfg.icon}</div>
+          <div>
+            <div class="upgrade-name">${cfg.name}</div>
+            <div class="upgrade-sub">${subText}</div>
+          </div>
+        </div>
+        <div class="upgrade-right">
+          <div class="upgrade-cost">${formatMoney(purchase.totalCost)}</div>
+          <div class="upgrade-count">x${owned} owned • acheter ${amountLabel}</div>
+        </div>
+      `;
+
+      div.addEventListener('click', () => buyUpgrade(cfg.id));
+      upgradesEl.appendChild(div);
+    });
+  }
+
+  function renderAchievements() {
+    achGridEl.innerHTML = '';
+    achievementsConfig.forEach(ach => {
+      const unlocked = state.unlockedAchievements.includes(ach.id);
+      const div = document.createElement('div');
+      div.className = 'ach' + (unlocked ? ' unlocked' : '');
+      div.innerHTML = `
+        ${unlocked ? ach.icon : '🔒'}
+        <div class="ach-tooltip">${ach.name} — ${ach.desc}</div>
+      `;
+      achGridEl.appendChild(div);
+    });
+  }
+
+  function getPrestigeGain() {
+    // gain = sqrt(totalEarned / 1,000,000), rounded down, minimum step logic
+    if (state.totalEarned < 1000000) return 0;
+    return Math.floor(Math.sqrt(state.totalEarned / 1000000));
+  }
+
+  function renderPrestige() {
+    const gain = getPrestigeGain();
+    if (gain > 0) {
+      prestigeBtn.disabled = false;
+      prestigeBtn.textContent = "Vendre l'empire (+" + gain + "% de gains permanents)";
+      prestigeInfo.textContent = "Multiplicateur actuel : x" + state.prestigeMultiplier.toFixed(2) + " • Remet l'argent et les améliorations à zéro, garde les succès.";
+    } else {
+      prestigeBtn.disabled = true;
+      prestigeBtn.textContent = "Vendre l'empire (débloqué à $1M de gains cumulés)";
+      prestigeInfo.textContent = 'Multiplicateur actuel : x' + state.prestigeMultiplier.toFixed(2);
+    }
+  }
+
+  // ---------- ACTIONS ----------
+
+  function buyUpgrade(id) {
+    const purchase = getCostForAmount(id, buyAmount);
+    if (purchase.count > 0 && state.money >= purchase.totalCost) {
+      state.money -= purchase.totalCost;
+      state.owned[id] += purchase.count;
+      checkAchievements();
+      save();
+      render();
+    }
+  }
+
+  function handleClick(e) {
+    recalcDerivedStats();
+    const gain = state._clickValue;
+    state.money += gain;
+    state.totalEarned += gain;
+    state.totalClicks += 1;
+
+    spawnFloatText(e, '+' + formatMoney(gain));
+    checkAchievements();
+    save();
+    render();
+  }
+
+  function spawnFloatText(e, text) {
+    const rect = clickBtn.getBoundingClientRect();
+    const span = document.createElement('div');
+    span.className = 'float-text';
+    span.textContent = text;
+    const x = (e.clientX || (rect.left + rect.width / 2)) - rect.left;
+    span.style.left = x + 'px';
+    span.style.top = '20px';
+    clickBtn.appendChild(span);
+    setTimeout(() => span.remove(), 900);
+  }
+
+  function checkAchievements() {
+    achievementsConfig.forEach(ach => {
+      if (!state.unlockedAchievements.includes(ach.id) && ach.check(state)) {
+        state.unlockedAchievements.push(ach.id);
+        showToast('🏆 Succès débloqué : ' + ach.name);
+      }
+    });
+  }
+
+  function doPrestige() {
+    const gain = getPrestigeGain();
+    if (gain <= 0) return;
+    if (!confirm("Vendre l'empire pour +" + gain + "% de gains permanents ? Ton argent et tes améliorations seront remis à zéro (les succès restent).")) {
+      return;
+    }
+    const newMultiplier = state.prestigeMultiplier + (gain / 100);
+    const owned = {};
+    upgradesConfig.forEach(u => owned[u.id] = 0);
+
+    state.money = 0;
+    state.totalEarned = 0;
+    state.owned = owned;
+    state.prestigeMultiplier = newMultiplier;
+    state.prestigeCount += 1;
+    state.boostActive = false;
+    state.boostEndsAt = 0;
+
+    checkAchievements();
+    save();
+    render();
+    showToast('🔄 Prestige effectué ! Multiplicateur : x' + newMultiplier.toFixed(2));
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // ---------- BOOST ----------
+
+  let boostTimer = null;
+
+  function scheduleNextBoost() {
+    const delay = (BOOST_MIN_INTERVAL + Math.random() * (BOOST_MAX_INTERVAL - BOOST_MIN_INTERVAL)) * 1000;
+    clearTimeout(boostTimer);
+    boostTimer = setTimeout(triggerBoostAvailable, delay);
+  }
+
+  function triggerBoostAvailable() {
+    if (state.boostActive) {
+      scheduleNextBoost();
+      return;
+    }
+    boostBanner.classList.add('active');
+    boostBanner.dataset.available = 'true';
+  }
+
+  function activateBoost() {
+    if (boostBanner.dataset.available !== 'true') return;
+    state.boostActive = true;
+    state.boostEndsAt = Date.now() + BOOST_DURATION * 1000;
+    state.boostsUsed += 1;
+    boostBanner.dataset.available = 'false';
+    checkAchievements();
+    save();
+    render();
+    scheduleNextBoost();
+  }
+
+  boostBanner.addEventListener('click', activateBoost);
+
+  // ---------- PERSISTENCE ----------
+
+  function save() {
+    try {
+      localStorage.setItem('cafe-empire-state', JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  async function load() {
+    try {
+      const raw = localStorage.getItem('cafe-empire-state');
+      if (raw) {
+        const loaded = JSON.parse(raw);
+        state = Object.assign(defaultState(), loaded);
+        // ensure all upgrades present (in case of new ones added later)
+        upgradesConfig.forEach(u => {
+          if (!(u.id in state.owned)) state.owned[u.id] = 0;
+        });
+      } else {
+        state = defaultState();
+      }
+    } catch (e) {
+      state = defaultState();
+    }
+    checkAchievements();
+    save();
+    render();
+  }
+
+  // ---------- EVENT LISTENERS ----------
+
+  clickBtn.addEventListener('click', handleClick);
+
+  buyBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const amount = btn.dataset.amount;
+      buyAmount = amount === 'max' ? 'max' : parseInt(amount, 10);
+      buyBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render();
+    });
+  });
+  // default active button
+  buyBtns[0].classList.add('active');
+
+  prestigeBtn.addEventListener('click', doPrestige);
+
+  resetBtn.addEventListener('click', () => {
+    if (confirm('Tout réinitialiser ? Cette action est définitive.')) {
+      state = defaultState();
+      save();
+      render();
+    }
+  });
+
+  // ---------- GAME LOOP ----------
+
+  setInterval(() => {
+    recalcDerivedStats();
+    if (state._perSecond > 0) {
+      const gain = state._perSecond / 10;
+      state.money += gain;
+      state.totalEarned += gain;
+    }
+    // check boost expiry
+    if (state.boostActive && Date.now() >= state.boostEndsAt) {
+      state.boostActive = false;
+    }
+    render();
+  }, 100);
+
+  setInterval(save, 5000);
+
+  // ---------- INIT ----------
+
+  load().then(() => {
+    scheduleNextBoost();
+  });
+
+})();
+</script>
+</body>
+</html>
