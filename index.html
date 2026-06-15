@@ -621,9 +621,8 @@
     rateEl.textContent = '+' + formatMoney(state._perSecond) + ' / sec';
     clickValueEl.textContent = formatNumber(state._clickValue);
 
-    renderUpgrades();
-    renderAchievements();
-    renderPrestige();
+    updateAffordability();
+    updatePrestigeNumbers();
     updateStageVisuals();
 
     if (state.boostActive && Date.now() < state.boostEndsAt) {
@@ -634,15 +633,71 @@
     }
   }
 
+  // Full re-render: rebuilds upgrade list and achievement grid.
+  // Only call this when something structural changes (purchase, buy-amount switch,
+  // prestige, load) — NOT on every game-loop tick, or hover/click states break.
+  function renderFull() {
+    renderUpgrades();
+    renderAchievements();
+    render();
+  }
+
+  // Lightweight pass: just toggle the "disabled" class and update the
+  // dynamic cost/contribution text without touching the DOM structure,
+  // so hover states and click targets stay stable between ticks.
+  function updateAffordability() {
+    const rows = upgradesEl.querySelectorAll('.upgrade');
+    rows.forEach(div => {
+      const cfg = upgradesConfig[parseInt(div.dataset.index, 10)];
+      const owned = state.owned[cfg.id];
+      const purchase = getCostForAmount(cfg.id, buyAmount);
+      const canAfford = purchase.count > 0 && state.money >= purchase.totalCost;
+
+      div.classList.toggle('disabled', !canAfford);
+
+      const contribution = getUpgradeContribution(cfg);
+      let subText = cfg.type === 'perSecond'
+        ? '+' + formatMoney(cfg.baseValue) + ' / sec chacun'
+        : '+' + formatMoney(cfg.baseValue) + ' / clic chacun';
+      if (contribution) {
+        subText += ' • génère ' + formatMoney(contribution.value) + ' ' + contribution.label;
+      }
+      div.querySelector('.upgrade-sub').textContent = subText;
+
+      let amountLabel;
+      if (buyAmount === 'max') {
+        amountLabel = purchase.count > 0 ? ('MAX (x' + purchase.count + ')') : 'MAX';
+      } else {
+        amountLabel = 'x' + buyAmount;
+      }
+      div.querySelector('.upgrade-cost').textContent = formatMoney(purchase.totalCost);
+      div.querySelector('.upgrade-count').textContent = 'x' + owned + ' owned • acheter ' + amountLabel;
+    });
+  }
+
+  function updatePrestigeNumbers() {
+    const gain = getPrestigeGain();
+    if (gain > 0) {
+      prestigeBtn.disabled = false;
+      prestigeBtn.textContent = "Vendre l'empire (+" + gain + "% de gains permanents)";
+    } else {
+      prestigeBtn.disabled = true;
+      prestigeBtn.textContent = "Vendre l'empire (débloqué à $1M de gains cumulés)";
+    }
+    prestigeInfo.textContent = "Multiplicateur actuel : x" + state.prestigeMultiplier.toFixed(2) +
+      (gain > 0 ? " • Remet l'argent et les améliorations à zéro, garde les succès." : "");
+  }
+
   function renderUpgrades() {
     upgradesEl.innerHTML = '';
-    upgradesConfig.forEach(cfg => {
+    upgradesConfig.forEach((cfg, index) => {
       const owned = state.owned[cfg.id];
       const purchase = getCostForAmount(cfg.id, buyAmount);
       const canAfford = purchase.count > 0 && state.money >= purchase.totalCost;
 
       const div = document.createElement('div');
       div.className = 'upgrade' + (canAfford ? '' : ' disabled');
+      div.dataset.index = index;
 
       const contribution = getUpgradeContribution(cfg);
       let subText = cfg.type === 'perSecond'
@@ -680,36 +735,37 @@
   }
 
   function renderAchievements() {
+    const existing = achGridEl.querySelectorAll('.ach');
+    if (existing.length === achievementsConfig.length) {
+      // structure already built — just toggle unlocked state, don't rebuild DOM
+      existing.forEach((div, i) => {
+        const ach = achievementsConfig[i];
+        const unlocked = state.unlockedAchievements.includes(ach.id);
+        if (unlocked && !div.classList.contains('unlocked')) {
+          div.classList.add('unlocked');
+          div.firstChild.textContent = ach.icon;
+        } else if (!unlocked && div.classList.contains('unlocked')) {
+          div.classList.remove('unlocked');
+          div.firstChild.textContent = '🔒';
+        }
+      });
+      return;
+    }
     achGridEl.innerHTML = '';
     achievementsConfig.forEach(ach => {
       const unlocked = state.unlockedAchievements.includes(ach.id);
       const div = document.createElement('div');
       div.className = 'ach' + (unlocked ? ' unlocked' : '');
-      div.innerHTML = `
-        ${unlocked ? ach.icon : '🔒'}
-        <div class="ach-tooltip">${ach.name} — ${ach.desc}</div>
-      `;
+      div.innerHTML = `${unlocked ? ach.icon : '🔒'}<div class="ach-tooltip">${ach.name} — ${ach.desc}</div>`;
       achGridEl.appendChild(div);
     });
   }
+
 
   function getPrestigeGain() {
     // gain = sqrt(totalEarned / 1,000,000), rounded down, minimum step logic
     if (state.totalEarned < 1000000) return 0;
     return Math.floor(Math.sqrt(state.totalEarned / 1000000));
-  }
-
-  function renderPrestige() {
-    const gain = getPrestigeGain();
-    if (gain > 0) {
-      prestigeBtn.disabled = false;
-      prestigeBtn.textContent = "Vendre l'empire (+" + gain + "% de gains permanents)";
-      prestigeInfo.textContent = "Multiplicateur actuel : x" + state.prestigeMultiplier.toFixed(2) + " • Remet l'argent et les améliorations à zéro, garde les succès.";
-    } else {
-      prestigeBtn.disabled = true;
-      prestigeBtn.textContent = "Vendre l'empire (débloqué à $1M de gains cumulés)";
-      prestigeInfo.textContent = 'Multiplicateur actuel : x' + state.prestigeMultiplier.toFixed(2);
-    }
   }
 
   // ---------- ACTIONS ----------
@@ -721,7 +777,7 @@
       state.owned[id] += purchase.count;
       checkAchievements();
       save();
-      render();
+      renderFull();
     }
   }
 
@@ -751,12 +807,16 @@
   }
 
   function checkAchievements() {
+    let unlocked = false;
     achievementsConfig.forEach(ach => {
       if (!state.unlockedAchievements.includes(ach.id) && ach.check(state)) {
         state.unlockedAchievements.push(ach.id);
         showToast('🏆 Succès débloqué : ' + ach.name);
+        unlocked = true;
       }
     });
+    if (unlocked) renderAchievements();
+    return unlocked;
   }
 
   function doPrestige() {
@@ -779,7 +839,7 @@
 
     checkAchievements();
     save();
-    render();
+    renderFull();
     showToast('🔄 Prestige effectué ! Multiplicateur : x' + newMultiplier.toFixed(2));
   }
 
@@ -849,7 +909,7 @@
     }
     checkAchievements();
     save();
-    render();
+    renderFull();
   }
 
   // ---------- EVENT LISTENERS ----------
@@ -874,7 +934,7 @@
     if (confirm('Tout réinitialiser ? Cette action est définitive.')) {
       state = defaultState();
       save();
-      render();
+      renderFull();
     }
   });
 
