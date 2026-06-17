@@ -29,6 +29,8 @@
   body.stage-2 { background: linear-gradient(135deg, #1a2b1f 0%, #2c4a35 50%, #1a2b1f 100%); }
   body.stage-3 { background: linear-gradient(135deg, #1a1f2b 0%, #2c354a 50%, #1a1f2b 100%); }
   body.stage-4 { background: linear-gradient(135deg, #2b1a2b 0%, #4a2c4a 50%, #2b1a2b 100%); }
+  body.stage-5 { background: linear-gradient(135deg, #0d1b2b 0%, #1b3a5c 50%, #0d1b2b 100%); }
+  body.stage-6 { background: linear-gradient(135deg, #1a0d2b 0%, #3a1b5c 50%, #0d0520 100%); }
 
   .container {
     width: 100%;
@@ -139,6 +141,38 @@
 
   .boost-banner.active {
     display: block;
+  }
+
+  .active-event-banner {
+    display: none;
+    width: 100%;
+    text-align: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #f5e6d3;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+
+  .active-event-banner.active {
+    display: block;
+  }
+
+  .combo-indicator {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ff8c42;
+    margin-top: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    height: 16px;
+  }
+
+  .combo-indicator.active {
+    opacity: 1;
   }
 
   @keyframes pulse {
@@ -344,6 +378,25 @@
     color: inherit;
   }
 
+  .perks-shop {
+    margin-bottom: 20px;
+  }
+
+  .perk {
+    border-color: rgba(192,132,252,0.25);
+  }
+
+  .perk .upgrade-cost {
+    color: #c084fc;
+  }
+
+  .perk-level {
+    font-size: 10px;
+    font-weight: 500;
+    opacity: 0.6;
+    margin-left: 4px;
+  }
+
   .toast {
     position: fixed;
     top: 16px;
@@ -378,7 +431,8 @@
     <div class="stage-label" id="stageLabel">Stand de café ambulant</div>
   </header>
 
-  <div class="boost-banner" id="boostBanner">⚡ BOOST x2 actif ! Profite-en !</div>
+  <div class="active-event-banner" id="activeEventBanner"></div>
+  <div class="boost-banner" id="boostBanner">⚡ BOOST x2 disponible !</div>
 
   <div class="stats">
     <div class="money" id="money">$0</div>
@@ -388,6 +442,7 @@
   <div class="click-area">
     <div class="click-btn" id="clickBtn">☕</div>
     <div class="click-value">Clic = $<span id="clickValue">1</span></div>
+    <div class="combo-indicator" id="comboIndicator"></div>
   </div>
 
   <div class="buy-controls">
@@ -407,6 +462,11 @@
   <div class="prestige-section">
     <button class="prestige-btn" id="prestigeBtn">Vendre l'empire</button>
     <div class="prestige-info" id="prestigeInfo"></div>
+  </div>
+
+  <div class="perks-shop">
+    <div class="section-title">🫘 Boutique de Grains dorés</div>
+    <div class="upgrades" id="perksShop"></div>
   </div>
 
   <button class="reset-link" id="resetBtn">Tout réinitialiser</button>
@@ -429,6 +489,11 @@
     { id: 'mall',    name: 'Réseau de centres commerciaux', icon: '🏢', baseCost: 2000000, baseValue: 6000, type: 'perSecond', stage: 3 },
     { id: 'global',  name: 'Distribution mondiale', icon: '🌍', baseCost: 10000000, baseValue: 30000, type: 'perSecond', stage: 3 },
     { id: 'empire',  name: 'Empire du café',    icon: '👑',   baseCost: 50000000, baseValue: 150000, type: 'perSecond', stage: 4 },
+    { id: 'corp',    name: 'Café Corp.',        icon: '🏛️',  baseCost: 250000000, baseValue: 600, type: 'perClick',  stage: 4 },
+    { id: 'monopoly',name: 'Monopole mondial du café', icon: '🌐', baseCost: 1000000000, baseValue: 750000, type: 'perSecond', stage: 5 },
+    { id: 'orbital', name: 'Station orbitale de torréfaction', icon: '🛰️', baseCost: 10000000000, baseValue: 5000000, type: 'perSecond', stage: 5 },
+    { id: 'mars',    name: 'Colonie caféière sur Mars', icon: '🚀', baseCost: 100000000000, baseValue: 25000, type: 'perClick', stage: 6 },
+    { id: 'galaxy',  name: 'Réseau galactique du café', icon: '🌌', baseCost: 1000000000000, baseValue: 100000000, type: 'perSecond', stage: 6 },
   ];
 
   const achievementsConfig = [
@@ -444,6 +509,14 @@
     { id: 'a10', icon: '👆', name: 'Doigt en or', desc: 'Cliquer 500 fois', check: s => s.totalClicks >= 500 },
     { id: 'a11', icon: '⚡', name: 'Chasseur de boost', desc: 'Activer 5 boosts', check: s => s.boostsUsed >= 5 },
     { id: 'a12', icon: '🔄', name: 'Nouveau départ', desc: 'Faire un premier Prestige', check: s => s.prestigeCount >= 1 },
+    { id: 'a13', icon: '🌐', name: 'Monopoliste', desc: 'Posséder 1 Monopole mondial du café', check: s => s.owned.monopoly >= 1 },
+    { id: 'a14', icon: '🚀', name: 'Pionnier martien', desc: 'Posséder 1 Colonie caféière sur Mars', check: s => s.owned.mars >= 1 },
+    { id: 'a15', icon: '🌌', name: 'Maître de la galaxie', desc: 'Posséder 1 Réseau galactique du café', check: s => s.owned.galaxy >= 1 },
+    { id: 'a16', icon: '💸', name: 'Milliardaire', desc: 'Atteindre $1,000,000,000', check: s => s.totalEarned >= 1000000000 },
+    { id: 'a17', icon: '🫘', name: 'Collectionneur de grains', desc: 'Accumuler 50 Grains dorés', check: s => s.goldenBeans >= 50 },
+    { id: 'a18', icon: '🔁', name: 'Cycle sans fin', desc: 'Faire 5 Prestiges', check: s => s.prestigeCount >= 5 },
+    { id: 'a19', icon: '🔥', name: 'Combo parfait', desc: 'Atteindre un combo de clics maximal', check: s => s.maxComboReached >= 10 },
+    { id: 'a20', icon: '🎲', name: 'Chasseur d\'événements', desc: 'Déclencher 10 événements aléatoires', check: s => s.eventsTriggered >= 10 },
   ];
 
   const COST_GROWTH = 1.15;
@@ -452,6 +525,32 @@
   const BOOST_MIN_INTERVAL = 45; // seconds
   const BOOST_MAX_INTERVAL = 90; // seconds
 
+  // Combo: rapid clicking builds a temporary multiplier
+  const COMBO_WINDOW_MS = 1000;   // max gap between clicks to keep the combo alive
+  const COMBO_MAX_STACKS = 20;    // cap on stacks
+  const COMBO_BONUS_PER_STACK = 0.05; // +5% per stack, up to +100% at max
+
+  // Random events (in addition to the x2 boost)
+  const EVENT_MIN_INTERVAL = 60;  // seconds
+  const EVENT_MAX_INTERVAL = 120; // seconds
+  const EVENT_DURATION = 25; // seconds
+
+  const eventsConfig = [
+    { id: 'rush',     icon: '🌅', name: 'Rush du matin',   desc: 'Production x3 pendant 25s !',        type: 'production', multiplier: 3 },
+    { id: 'shortage', icon: '🌾', name: 'Pénurie de grains', desc: 'Coûts des améliorations -30% pendant 25s !', type: 'discount', multiplier: 0.7 },
+    { id: 'rain',     icon: '☔', name: 'Jour de pluie',    desc: 'Tout le monde veut un café chaud : clics x2 pendant 25s !', type: 'click', multiplier: 2 },
+  ];
+
+  // Golden Beans shop — permanent perks bought with prestige currency
+  const perksConfig = [
+    { id: 'clickPower',   icon: '👆', name: 'Poigne du barista',     desc: '+10% de gain par clic, par niveau', maxLevel: 20, baseCost: 1,  costGrowth: 1.6 },
+    { id: 'autoPower',    icon: '⚙️', name: 'Optimisation machines', desc: '+10% de production passive, par niveau', maxLevel: 20, baseCost: 1,  costGrowth: 1.6 },
+    { id: 'cheaperUpgrades', icon: '🏷️', name: 'Négociateur',        desc: '-2% sur le coût de toutes les améliorations, par niveau', maxLevel: 10, baseCost: 2, costGrowth: 1.8 },
+    { id: 'longerBoosts', icon: '⏳', name: 'Patience infinie',      desc: '+10s de durée pour boosts et événements, par niveau', maxLevel: 5, baseCost: 3, costGrowth: 2 },
+    { id: 'comboKeeper',  icon: '🔥', name: 'Rythme effréné',        desc: '+1 stack max de combo, par niveau', maxLevel: 10, baseCost: 2, costGrowth: 1.7 },
+    { id: 'startBonus',   icon: '🌱', name: 'Capital de départ',     desc: 'Commence chaque run avec $500 x niveau', maxLevel: 10, baseCost: 1, costGrowth: 1.5 },
+  ];
+
   // ---------- STATE ----------
 
   let state = null;
@@ -459,6 +558,8 @@
   function defaultState() {
     const owned = {};
     upgradesConfig.forEach(u => owned[u.id] = 0);
+    const perkLevels = {};
+    perksConfig.forEach(p => perkLevels[p.id] = 0);
     return {
       money: 0,
       totalEarned: 0,
@@ -471,6 +572,14 @@
       prestigeMultiplier: 1,
       unlockedAchievements: [],
       maxStageReached: 1,
+      goldenBeans: 0,
+      perkLevels: perkLevels,
+      activeEvent: null,
+      eventEndsAt: 0,
+      eventsTriggered: 0,
+      comboStacks: 0,
+      lastClickAt: 0,
+      maxComboReached: 0,
     };
   }
 
@@ -484,8 +593,11 @@
   const achGridEl = document.getElementById('achGrid');
   const buyBtns = document.querySelectorAll('.buy-btn');
   const boostBanner = document.getElementById('boostBanner');
+  const activeEventBanner = document.getElementById('activeEventBanner');
+  const comboIndicator = document.getElementById('comboIndicator');
   const prestigeBtn = document.getElementById('prestigeBtn');
   const prestigeInfo = document.getElementById('prestigeInfo');
+  const perksShopEl = document.getElementById('perksShop');
   const resetBtn = document.getElementById('resetBtn');
   const stageLabel = document.getElementById('stageLabel');
   const toast = document.getElementById('toast');
@@ -514,25 +626,58 @@
 
   // ---------- CALCULATIONS ----------
 
+  function getPerkLevel(id) {
+    return state.perkLevels[id] || 0;
+  }
+
+  function getPerkCost(id) {
+    const cfg = perksConfig.find(p => p.id === id);
+    const level = getPerkLevel(id);
+    return Math.ceil(cfg.baseCost * Math.pow(cfg.costGrowth, level));
+  }
+
   function getCurrentBoostMultiplier() {
     return (state.boostActive && Date.now() < state.boostEndsAt) ? BOOST_MULTIPLIER : 1;
   }
 
+  function getActiveEventEffect(type) {
+    if (!state.activeEvent || Date.now() >= state.eventEndsAt) return 1;
+    const cfg = eventsConfig.find(e => e.id === state.activeEvent);
+    if (!cfg || cfg.type !== type) return 1;
+    return cfg.multiplier;
+  }
+
+  function getComboMultiplier() {
+    return 1 + (state.comboStacks * COMBO_BONUS_PER_STACK);
+  }
+
+  function getMaxComboStacks() {
+    return COMBO_MAX_STACKS + getPerkLevel('comboKeeper');
+  }
+
+  function getCostDiscount() {
+    // 2% per level, multiplicative reduction
+    const level = getPerkLevel('cheaperUpgrades');
+    return Math.pow(0.98, level);
+  }
+
   function getCostForNext(id, ownedCount) {
     const cfg = upgradesConfig.find(u => u.id === id);
-    return Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, ownedCount));
+    const eventDiscount = getActiveEventEffect('discount');
+    return Math.max(1, Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, ownedCount) * getCostDiscount() * eventDiscount));
   }
 
   function getCostForAmount(id, amount) {
     const cfg = upgradesConfig.find(u => u.id === id);
     const owned = state.owned[id];
+    const discount = getCostDiscount() * getActiveEventEffect('discount');
     if (amount === 'max') {
       // compute how many can be bought and total cost
       let count = 0;
       let total = 0;
       let money = state.money;
       while (true) {
-        const cost = Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, owned + count));
+        const cost = Math.max(1, Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, owned + count) * discount));
         if (total + cost > money) break;
         total += cost;
         count++;
@@ -542,7 +687,7 @@
     } else {
       let total = 0;
       for (let i = 0; i < amount; i++) {
-        total += Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, owned + i));
+        total += Math.max(1, Math.floor(cfg.baseCost * Math.pow(COST_GROWTH, owned + i) * discount));
       }
       return { totalCost: total, count: amount };
     }
@@ -561,10 +706,18 @@
         }
       }
     });
+
     const prestigeMult = state.prestigeMultiplier;
     const boostMult = getCurrentBoostMultiplier();
-    state._perSecond = perSecond * prestigeMult * boostMult;
-    state._clickValue = (1 + clickBonus) * prestigeMult * boostMult;
+    const comboMult = getComboMultiplier();
+    const eventProdMult = getActiveEventEffect('production');
+    const eventClickMult = getActiveEventEffect('click');
+
+    const perkClickMult = 1 + getPerkLevel('clickPower') * 0.10;
+    const perkAutoMult = 1 + getPerkLevel('autoPower') * 0.10;
+
+    state._perSecond = perSecond * prestigeMult * boostMult * eventProdMult * perkAutoMult;
+    state._clickValue = (1 + clickBonus) * prestigeMult * boostMult * comboMult * eventClickMult * perkClickMult;
   }
 
   function getUpgradeContribution(cfg) {
@@ -573,10 +726,16 @@
     const prestigeMult = state.prestigeMultiplier;
     const boostMult = getCurrentBoostMultiplier();
     const raw = cfg.baseValue * owned;
-    const effective = raw * prestigeMult * boostMult;
     if (cfg.type === 'perSecond') {
+      const eventProdMult = getActiveEventEffect('production');
+      const perkAutoMult = 1 + getPerkLevel('autoPower') * 0.10;
+      const effective = raw * prestigeMult * boostMult * eventProdMult * perkAutoMult;
       return { label: '/sec', value: effective };
     } else {
+      const comboMult = getComboMultiplier();
+      const eventClickMult = getActiveEventEffect('click');
+      const perkClickMult = 1 + getPerkLevel('clickPower') * 0.10;
+      const effective = raw * prestigeMult * boostMult * comboMult * eventClickMult * perkClickMult;
       return { label: '/clic', value: effective };
     }
   }
@@ -599,6 +758,8 @@
     2: 'Chaîne régionale en expansion',
     3: 'Marque nationale reconnue',
     4: 'Empire mondial du café ☕👑',
+    5: 'Monopole interplanétaire 🛰️',
+    6: 'Civilisation galactique du café 🌌',
   };
 
   function updateStageVisuals() {
@@ -624,12 +785,43 @@
     updateAffordability();
     updatePrestigeNumbers();
     updateStageVisuals();
+    updateComboDisplay();
+    updateActiveEventBanner();
 
-    if (state.boostActive && Date.now() < state.boostEndsAt) {
-      boostBanner.classList.add('active');
+    if (state.boostActive && Date.now() >= state.boostEndsAt) {
+      state.boostActive = false;
+    }
+    if (state.activeEvent && Date.now() >= state.eventEndsAt) {
+      state.activeEvent = null;
+    }
+  }
+
+  function updateComboDisplay() {
+    if (state.comboStacks > 0 && Date.now() - state.lastClickAt < COMBO_WINDOW_MS) {
+      comboIndicator.classList.add('active');
+      comboIndicator.textContent = '🔥 Combo x' + state.comboStacks + ' (+' + Math.round(state.comboStacks * COMBO_BONUS_PER_STACK * 100) + '%)';
     } else {
-      boostBanner.classList.remove('active');
-      if (state.boostActive) state.boostActive = false;
+      comboIndicator.classList.remove('active');
+      comboIndicator.textContent = '';
+      if (state.comboStacks > 0 && Date.now() - state.lastClickAt >= COMBO_WINDOW_MS) {
+        state.comboStacks = 0;
+      }
+    }
+  }
+
+  function updateActiveEventBanner() {
+    if (state.activeEvent && Date.now() < state.eventEndsAt) {
+      const cfg = eventsConfig.find(e => e.id === state.activeEvent);
+      const remaining = Math.ceil((state.eventEndsAt - Date.now()) / 1000);
+      activeEventBanner.classList.add('active');
+      activeEventBanner.textContent = cfg.icon + ' ' + cfg.name + ' — ' + remaining + 's restantes';
+    } else {
+      activeEventBanner.classList.remove('active');
+    }
+    if (state.boostActive && Date.now() < state.boostEndsAt) {
+      const remaining = Math.ceil((state.boostEndsAt - Date.now()) / 1000);
+      activeEventBanner.classList.add('active');
+      activeEventBanner.textContent = '⚡ BOOST x2 actif — ' + remaining + 's restantes';
     }
   }
 
@@ -639,6 +831,7 @@
   function renderFull() {
     renderUpgrades();
     renderAchievements();
+    renderPerksShop();
     render();
   }
 
@@ -677,15 +870,17 @@
 
   function updatePrestigeNumbers() {
     const gain = getPrestigeGain();
+    const beansGain = getGoldenBeansGain();
     if (gain > 0) {
       prestigeBtn.disabled = false;
-      prestigeBtn.textContent = "Vendre l'empire (+" + gain + "% de gains permanents)";
+      prestigeBtn.textContent = "Vendre l'empire (+" + gain + "% perm. & +" + beansGain + " 🫘)";
     } else {
       prestigeBtn.disabled = true;
       prestigeBtn.textContent = "Vendre l'empire (débloqué à $1M de gains cumulés)";
     }
-    prestigeInfo.textContent = "Multiplicateur actuel : x" + state.prestigeMultiplier.toFixed(2) +
-      (gain > 0 ? " • Remet l'argent et les améliorations à zéro, garde les succès." : "");
+    prestigeInfo.textContent = "Multiplicateur : x" + state.prestigeMultiplier.toFixed(2) +
+      " • 🫘 " + state.goldenBeans + " Grains dorés" +
+      (gain > 0 ? " • Remet l'argent et les améliorations à zéro" : "");
   }
 
   function renderUpgrades() {
@@ -762,10 +957,60 @@
   }
 
 
+  function renderPerksShop() {
+    perksShopEl.innerHTML = '';
+    perksConfig.forEach(cfg => {
+      const level = getPerkLevel(cfg.id);
+      const maxed = level >= cfg.maxLevel;
+      const cost = getPerkCost(cfg.id);
+      const canAfford = !maxed && state.goldenBeans >= cost;
+
+      const div = document.createElement('div');
+      div.className = 'upgrade perk' + (canAfford ? '' : ' disabled');
+
+      div.innerHTML = `
+        <div class="upgrade-left">
+          <div class="upgrade-icon">${cfg.icon}</div>
+          <div>
+            <div class="upgrade-name">${cfg.name} <span class="perk-level">Nv. ${level}/${cfg.maxLevel}</span></div>
+            <div class="upgrade-sub">${cfg.desc}</div>
+          </div>
+        </div>
+        <div class="upgrade-right">
+          <div class="upgrade-cost">${maxed ? 'MAX' : '🫘 ' + cost}</div>
+        </div>
+      `;
+
+      if (!maxed) {
+        div.addEventListener('click', () => buyPerk(cfg.id));
+      }
+      perksShopEl.appendChild(div);
+    });
+  }
+
+  function buyPerk(id) {
+    const cfg = perksConfig.find(p => p.id === id);
+    const level = getPerkLevel(id);
+    if (level >= cfg.maxLevel) return;
+    const cost = getPerkCost(id);
+    if (state.goldenBeans >= cost) {
+      state.goldenBeans -= cost;
+      state.perkLevels[id] = level + 1;
+      save();
+      renderFull();
+    }
+  }
+
   function getPrestigeGain() {
     // gain = sqrt(totalEarned / 1,000,000), rounded down, minimum step logic
     if (state.totalEarned < 1000000) return 0;
     return Math.floor(Math.sqrt(state.totalEarned / 1000000));
+  }
+
+  function getGoldenBeansGain() {
+    // beans = cube root of totalEarned / 1,000,000 — slower curve than the % gain
+    if (state.totalEarned < 1000000) return 0;
+    return Math.max(1, Math.floor(Math.cbrt(state.totalEarned / 1000000)));
   }
 
   // ---------- ACTIONS ----------
@@ -782,6 +1027,17 @@
   }
 
   function handleClick(e) {
+    const now = Date.now();
+    if (now - state.lastClickAt <= COMBO_WINDOW_MS) {
+      state.comboStacks = Math.min(getMaxComboStacks(), state.comboStacks + 1);
+    } else {
+      state.comboStacks = 0;
+    }
+    state.lastClickAt = now;
+    if (state.comboStacks > state.maxComboReached) {
+      state.maxComboReached = state.comboStacks;
+    }
+
     recalcDerivedStats();
     const gain = state._clickValue;
     state.money += gain;
@@ -822,25 +1078,32 @@
   function doPrestige() {
     const gain = getPrestigeGain();
     if (gain <= 0) return;
-    if (!confirm("Vendre l'empire pour +" + gain + "% de gains permanents ? Ton argent et tes améliorations seront remis à zéro (les succès restent).")) {
+    const beansGain = getGoldenBeansGain();
+    if (!confirm("Vendre l'empire pour +" + gain + "% de gains permanents et " + beansGain + " 🫘 Grains dorés ? Ton argent et tes améliorations seront remis à zéro (les succès et la boutique de perks restent).")) {
       return;
     }
     const newMultiplier = state.prestigeMultiplier + (gain / 100);
     const owned = {};
     upgradesConfig.forEach(u => owned[u.id] = 0);
 
-    state.money = 0;
+    const startBonus = getPerkLevel('startBonus') * 500;
+
+    state.money = startBonus;
     state.totalEarned = 0;
     state.owned = owned;
     state.prestigeMultiplier = newMultiplier;
     state.prestigeCount += 1;
+    state.goldenBeans += beansGain;
     state.boostActive = false;
     state.boostEndsAt = 0;
+    state.activeEvent = null;
+    state.eventEndsAt = 0;
+    state.comboStacks = 0;
 
     checkAchievements();
     save();
     renderFull();
-    showToast('🔄 Prestige effectué ! Multiplicateur : x' + newMultiplier.toFixed(2));
+    showToast('🔄 Prestige effectué ! +' + beansGain + ' 🫘 Grains dorés');
   }
 
   function showToast(msg) {
@@ -850,34 +1113,62 @@
     toast._timeout = setTimeout(() => toast.classList.remove('show'), 2500);
   }
 
-  // ---------- BOOST ----------
+  // ---------- BOOST & RANDOM EVENTS ----------
+  // A single banner slot is shared: either the classic x2 click/sec boost,
+  // or one of the random events (rush / shortage / rain). Only one is
+  // offered at a time to keep the UI simple.
 
   let boostTimer = null;
 
   function scheduleNextBoost() {
-    const delay = (BOOST_MIN_INTERVAL + Math.random() * (BOOST_MAX_INTERVAL - BOOST_MIN_INTERVAL)) * 1000;
+    const minI = Math.min(BOOST_MIN_INTERVAL, EVENT_MIN_INTERVAL);
+    const maxI = Math.max(BOOST_MAX_INTERVAL, EVENT_MAX_INTERVAL);
+    const delay = (minI + Math.random() * (maxI - minI)) * 1000;
     clearTimeout(boostTimer);
     boostTimer = setTimeout(triggerBoostAvailable, delay);
   }
 
   function triggerBoostAvailable() {
-    if (state.boostActive) {
+    if (state.boostActive || (state.activeEvent && Date.now() < state.eventEndsAt)) {
       scheduleNextBoost();
       return;
+    }
+    // randomly choose between the classic boost and a random event
+    const roll = Math.random();
+    if (roll < 0.4) {
+      pendingOffer = { kind: 'boost' };
+      boostBanner.innerHTML = "⚡ BOOST x2 disponible ! Clique pour l'activer";
+    } else {
+      const evt = eventsConfig[Math.floor(Math.random() * eventsConfig.length)];
+      pendingOffer = { kind: 'event', event: evt };
+      boostBanner.innerHTML = evt.icon + ' ' + evt.name + " disponible ! Clique pour l'activer";
     }
     boostBanner.classList.add('active');
     boostBanner.dataset.available = 'true';
   }
 
+  let pendingOffer = null;
+
   function activateBoost() {
-    if (boostBanner.dataset.available !== 'true') return;
-    state.boostActive = true;
-    state.boostEndsAt = Date.now() + BOOST_DURATION * 1000;
-    state.boostsUsed += 1;
+    if (boostBanner.dataset.available !== 'true' || !pendingOffer) return;
+    const bonusDuration = getPerkLevel('longerBoosts') * 10;
+
+    if (pendingOffer.kind === 'boost') {
+      state.boostActive = true;
+      state.boostEndsAt = Date.now() + (BOOST_DURATION + bonusDuration) * 1000;
+      state.boostsUsed += 1;
+    } else {
+      state.activeEvent = pendingOffer.event.id;
+      state.eventEndsAt = Date.now() + (EVENT_DURATION + bonusDuration) * 1000;
+      state.eventsTriggered += 1;
+      showToast(pendingOffer.event.icon + ' ' + pendingOffer.event.name + ' : ' + pendingOffer.event.desc);
+    }
+
     boostBanner.dataset.available = 'false';
+    pendingOffer = null;
     checkAchievements();
     save();
-    render();
+    renderFull();
     scheduleNextBoost();
   }
 
@@ -900,6 +1191,10 @@
         // ensure all upgrades present (in case of new ones added later)
         upgradesConfig.forEach(u => {
           if (!(u.id in state.owned)) state.owned[u.id] = 0;
+        });
+        // ensure all perks present (in case of new ones added later)
+        perksConfig.forEach(p => {
+          if (!(p.id in state.perkLevels)) state.perkLevels[p.id] = 0;
         });
       } else {
         state = defaultState();
