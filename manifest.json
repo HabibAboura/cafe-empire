@@ -1,0 +1,25 @@
+{
+  "name": "Café Empire",
+  "short_name": "Café Empire",
+  "description": "Build your coffee empire from a street stand to a galactic network!",
+  "start_url": "/cafe-empire/",
+  "scope": "/cafe-empire/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2b1810",
+  "theme_color": "#2b1810",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
